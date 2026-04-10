@@ -98,3 +98,11 @@ class Shift(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="shifts")
+
+
+class GoogleSheetsCredential(Base):
+    __tablename__ = "google_sheets_credentials"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), unique=True, nullable=False)
+    service_account_json: Mapped[str] = mapped_column(Text, nullable=False)

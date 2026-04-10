@@ -273,6 +273,8 @@
             <div style="display:flex;align-items:flex-end;gap:0.5rem;flex-wrap:wrap">
               <button type="button" class="btn btn-primary" id="mgr-refresh">Обновить</button>
               <button type="button" class="btn btn-ghost" id="mgr-report">Отчёт план/факт</button>
+              <button type="button" class="btn btn-ghost" id="mgr-sheets-key">Добавить JSON ключ</button>
+              <button type="button" class="btn btn-ghost" id="mgr-sheets">Выгрузить в Google Sheets</button>
               <a class="btn btn-ghost" id="mgr-csv" href="#">CSV</a>
             </div>
           </div>
@@ -984,6 +986,43 @@
             tb.appendChild(tr);
           });
           box.classList.remove("hidden");
+        } catch (x) {
+          alert(x.message);
+        }
+      };
+      document.getElementById("mgr-sheets-key").onclick = async () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".json,application/json";
+        input.onchange = async () => {
+          const file = input.files && input.files[0];
+          if (!file) return;
+          try {
+            const txt = await file.text();
+            await api("/api/integrations/google-sheets/key", {
+              method: "POST",
+              body: { service_account_json: txt },
+            });
+            alert("JSON ключ сохранён. Теперь можно выгружать в Google Sheets.");
+          } catch (x) {
+            alert(x.message);
+          }
+        };
+        input.click();
+      };
+      document.getElementById("mgr-sheets").onclick = async () => {
+        const from = document.getElementById("mgr-from").value;
+        const to = document.getElementById("mgr-to").value;
+        const team = document.getElementById("mgr-team").value;
+        const spreadsheetId = prompt("Spreadsheet ID (из URL Google Sheets):");
+        if (!spreadsheetId) return;
+        const sheetName = prompt("Имя листа (можно оставить пустым):") || "";
+        try {
+          const teamQ = team ? `&team_id=${encodeURIComponent(team)}` : "";
+          const sidQ = `&spreadsheet_id=${encodeURIComponent(spreadsheetId.trim())}`;
+          const snQ = sheetName.trim() ? `&sheet_name=${encodeURIComponent(sheetName.trim())}` : "";
+          const res = await api(`/api/integrations/google-sheets/export?from_date=${from}&to_date=${to}${teamQ}${sidQ}${snQ}`, { method: "POST" });
+          alert((res && res.message) ? (res.message + `\\nЛист: ${res.sheet_name}`) : "Готово");
         } catch (x) {
           alert(x.message);
         }

@@ -56,7 +56,13 @@
 
 ### Интеграция с Google Таблицами
 
-- Заготовка: `GET /api/integrations/google-sheets/status` (роль manager/admin). Сейчас возвращает подсказку по подключению; готовый экспорт — через **CSV** (`/api/export/csv`).
+- Реальная интеграция: кнопка **«Выгрузить в Google Sheets»** на вкладке **«Подразделение»** (manager/admin).
+- Кнопка **«Добавить JSON ключ»** позволяет пользователю загрузить файл сервис-аккаунта прямо из GUI (без переменных окружения).
+- API:
+  - `GET /api/integrations/google-sheets/status` — проверка настройки.
+  - `POST /api/integrations/google-sheets/key` — сохранить JSON ключ для текущей организации.
+  - `POST /api/integrations/google-sheets/export?from_date=...&to_date=...&spreadsheet_id=...&sheet_name=...&team_id=...` — создать/обновить лист и записать данные.
+- Требуется **service account** Google и доступ к целевой таблице (Share на `client_email` из JSON).
 
 ### Данные и запуск «с нуля»
 
