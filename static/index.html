@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Индивидуальный график смен</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a222d;
+      --surface2: #232d3b;
+      --border: #2d3a4d;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --accent-dim: #2a5fbf;
+      --success: #34c759;
+      --warning: #ff9f0a;
+      --radius: 12px;
+      --font: "DM Sans", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      background: radial-gradient(1200px 600px at 10% -10%, #1a2a4a 0%, transparent 50%), var(--bg);
+      color: var(--text);
+    }
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(26, 34, 45, 0.85);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; }
+    .logo span { color: var(--accent); }
+    main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; font-weight: 600; }
+    h2 { font-size: 1rem; margin: 0 0 0.75rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.35rem; }
+    input, select, button, textarea {
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 140px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dim); }
+    .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface2); }
+    .btn-danger { background: #c44; color: #fff; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .tab {
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .tab.active { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+    .hidden { display: none !important; }
+    .login-wrap { max-width: 400px; margin: 4rem auto; }
+    .login-wrap h1 { text-align: center; margin-bottom: 1.5rem; }
+    .error { color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem; }
+    .grid-days {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.65rem;
+    }
+    .day-cell {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem;
+      background: var(--surface2);
+      min-height: 88px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .day-cell:hover { border-color: var(--accent); }
+    .day-cell .dow { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+    .day-cell .num { font-weight: 700; font-size: 1.1rem; }
+    .day-cell .shift { font-size: 0.75rem; margin-top: 0.35rem; color: var(--accent); }
+    .day-cell .status { font-size: 0.65rem; margin-top: 0.25rem; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+      padding: 1rem;
+    }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; width: 100%; max-width: 420px; }
+    .modal h3 { margin: 0 0 1rem; }
+    .bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 120px; margin-top: 0.5rem; }
+    .bar { flex: 1; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 4px; position: relative; }
+    .bar span { position: absolute; bottom: -1.2rem; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: var(--muted); white-space: nowrap; }
+    .user-badge { font-size: 0.8rem; color: var(--muted); }
+    .pill { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 6px; font-size: 0.7rem; font-weight: 600; }
+    .pill-draft { background: #444; color: #ccc; }
+    .pill-submitted { background: #3d3d1a; color: var(--warning); }
+    .pill-confirmed { background: #1a3d2a; color: var(--success); }
+    .admin-hint { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; line-height: 1.45; }
+    .form-stack label { margin-top: 0.65rem; }
+    .form-stack label:first-child { margin-top: 0; }
+    .auth-switch { font-size: 0.88rem; color: var(--muted); margin-top: 1rem; text-align: center; }
+    .auth-switch a { color: var(--accent); cursor: pointer; font-weight: 500; text-decoration: none; }
+    .auth-switch a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div id="screen-login" class="login-wrap">
+    <h1>График <span style="color:var(--accent)">смен</span></h1>
+    <div id="panel-login">
+      <div class="card">
+        <h2 style="margin:0 0 0.75rem;color:var(--text);text-transform:none;letter-spacing:0">Вход</h2>
+        <form id="form-login">
+          <label>Email</label>
+          <input type="text" name="email" required autocomplete="username" placeholder="employee@demo.local" inputmode="email" />
+          <label style="margin-top:0.75rem">Пароль</label>
+          <input type="password" name="password" required autocomplete="current-password" />
+          <div id="login-error" class="error hidden"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem">Войти</button>
+        </form>
+        <p style="font-size:0.8rem;color:var(--muted);margin-top:1rem;margin-bottom:0">
+          Демо: <code>employee@demo.local</code> / <code>employee123</code> ·
+          <code>manager@demo.local</code> / <code>manager123</code>
+        </p>
+        <p class="auth-switch">Нет аккаунта? <a id="link-register" role="button">Зарегистрироваться</a></p>
+      </div>
+    </div>
+    <div id="panel-register" class="hidden">
+      <div class="card">
+        <h2 style="margin:0 0 0.75rem;color:var(--text);text-transform:none;letter-spacing:0">Регистрация</h2>
+        <p style="font-size:0.85rem;color:var(--muted);margin:0 0 1rem;line-height:1.45">
+          Создаётся учётная запись с ролью <strong>сотрудник</strong>. После отправки формы <strong>руководитель или администратор вашей организации должен подтвердить</strong> заявку — только тогда можно войти. Организацию создаёт администратор.
+        </p>
+        <form id="form-register" class="form-stack">
+          <label>Email (будет логином)</label>
+          <input type="text" name="email" required autocomplete="off" inputmode="email" />
+          <label>ФИО</label>
+          <input type="text" name="full_name" required autocomplete="name" />
+          <label>Пароль (не меньше 4 символов)</label>
+          <input type="password" name="password" required minlength="4" autocomplete="new-password" />
+          <label>Организация</label>
+          <select name="organization_id" id="reg-org" required>
+            <option value="">— Загрузка… —</option>
+          </select>
+          <label>Подразделение / команда</label>
+          <select name="team_id" id="reg-team">
+            <option value="">— Сначала выберите организацию —</option>
+          </select>
+          <div id="register-error" class="error hidden"></div>
+          <button type="submit" class="btn btn-primary" style="margin-top:0.85rem;width:100%">Отправить заявку</button>
+        </form>
+        <p class="auth-switch"><a id="link-login" role="button">Уже есть аккаунт — войти</a></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-app" class="hidden">
+    <header class="app-header">
+      <div class="logo">График <span>смен</span></div>
+      <div class="row" style="flex:0;align-items:center;gap:0.75rem">
+        <span class="user-badge" id="user-label"></span>
+        <button type="button" class="btn btn-ghost" id="btn-logout">Выйти</button>
+      </div>
+    </header>
+    <main>
+      <div class="tabs" id="role-tabs">
+        <button type="button" class="tab active" data-panel="my">Мой график</button>
+        <button type="button" class="tab hidden" data-panel="mgr" id="tab-mgr">Подразделение</button>
+        <button type="button" class="tab hidden" data-panel="admin" id="tab-admin">Администрирование</button>
+      </div>
+
+      <section id="panel-my">
+        <div class="card">
+          <h1>Планирование на 2 недели</h1>
+          <p style="color:var(--muted);font-size:0.9rem;margin:0 0 1rem">Выберите день, укажите начало и конец смены. Отправьте график руководителю кнопкой ниже.</p>
+          <div class="row" style="margin-bottom:1rem">
+            <div>
+              <label>Вид календаря</label>
+              <select id="view-mode">
+                <option value="day">День</option>
+                <option value="week" selected>2 недели</option>
+                <option value="month">Месяц (обзор)</option>
+              </select>
+            </div>
+            <div style="flex:2;min-width:200px;display:flex;align-items:flex-end">
+              <button type="button" class="btn btn-primary" id="btn-submit-week">Отправить черновики на согласование</button>
+            </div>
+          </div>
+          <div id="calendar-mount"></div>
+        </div>
+      </section>
+
+      <section id="panel-mgr" class="hidden">
+        <div class="card" style="border-color:#5c4a2a">
+          <h2 style="color:var(--warning);margin:0 0 0.35rem;text-transform:none;letter-spacing:0">Заявки на доступ</h2>
+          <p style="font-size:0.85rem;color:var(--muted);margin:0 0 0.75rem;line-height:1.45">
+            Самостоятельно зарегистрированные сотрудники не могут войти, пока вы или администратор не нажмёте «Подтвердить».
+          </p>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr><th>Email</th><th>ФИО</th><th>Подразделение</th><th>Роль</th><th></th></tr>
+              </thead>
+              <tbody id="mgr-pending-table"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h1>Нагрузка и смены подразделения</h1>
+          <div class="row" style="margin-bottom:1rem">
+            <div>
+              <label>С</label>
+              <input type="date" id="mgr-from" />
+            </div>
+            <div>
+              <label>По</label>
+              <input type="date" id="mgr-to" />
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:0.5rem;flex-wrap:wrap">
+              <button type="button" class="btn btn-primary" id="mgr-refresh">Обновить</button>
+              <button type="button" class="btn btn-ghost" id="mgr-report">Отчёт план/факт</button>
+              <a class="btn btn-ghost" id="mgr-csv" href="#">CSV</a>
+            </div>
+          </div>
+          <h2>График по дням</h2>
+          <div id="mgr-chart" class="bar-chart"></div>
+          <div id="mgr-report-box" class="hidden" style="margin-top:1rem">
+            <h2>Отчёт: часы план / факт</h2>
+            <div style="overflow-x:auto">
+              <table>
+                <thead>
+                  <tr><th>Сотрудник</th><th>Смен</th><th>План (ч)</th><th>Факт (ч)</th><th>Δ (ч)</th></tr>
+                </thead>
+                <tbody id="mgr-report-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <h2 style="margin-top:2rem">Смены</h2>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Сотрудник</th>
+                  <th>План</th>
+                  <th>Факт</th>
+                  <th>Статус</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="mgr-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-admin" class="hidden">
+        <div class="card">
+          <h1>Администрирование</h1>
+          <p class="admin-hint">Создание организаций, подразделений (иерархия команд) и учётных записей. Подразделение верхнего уровня — без родителя; вложенные команды указывают родительское подразделение в списке.</p>
+          <button type="button" class="btn btn-ghost" id="admin-refresh">Обновить списки</button>
+        </div>
+        <div class="card">
+          <h2>Новая организация</h2>
+          <form id="form-admin-org" class="form-stack">
+            <label>Название компании / организации</label>
+            <input type="text" name="name" required placeholder="ООО Пример" />
+            <button type="submit" class="btn btn-primary" style="margin-top:0.85rem">Создать организацию</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Новое подразделение или команда</h2>
+          <form id="form-admin-team" class="form-stack">
+            <label>Организация</label>
+            <select name="organization_id" id="admin-team-org" required></select>
+            <label>Название</label>
+            <input type="text" name="name" required placeholder="Отдел логистики" />
+            <label>Родитель (опционально)</label>
+            <select name="parent_id" id="admin-team-parent">
+              <option value="">— Верхний уровень (нет родителя) —</option>
+            </select>
+            <button type="submit" class="btn btn-primary" style="margin-top:0.85rem">Создать подразделение</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Новый пользователь</h2>
+          <form id="form-admin-user" class="form-stack">
+            <label>Email (логин)</label>
+            <input type="text" name="email" required autocomplete="off" />
+            <label>ФИО</label>
+            <input type="text" name="full_name" required />
+            <label>Пароль</label>
+            <input type="password" name="password" required minlength="4" autocomplete="new-password" />
+            <label>Организация</label>
+            <select name="organization_id" id="admin-user-org" required></select>
+            <label>Подразделение / команда</label>
+            <select name="team_id" id="admin-user-team">
+              <option value="">— Не назначено —</option>
+            </select>
+            <label>Роль</label>
+            <select name="role" id="admin-user-role">
+              <option value="employee">Сотрудник</option>
+              <option value="manager">Руководитель</option>
+              <option value="admin">Администратор</option>
+            </select>
+            <button type="submit" class="btn btn-primary" style="margin-top:0.85rem">Создать пользователя</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Список организаций</h2>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>ID</th><th>Название</th></tr></thead>
+              <tbody id="admin-org-table"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Подразделения и команды</h2>
+          <label>Фильтр по организации</label>
+          <select id="admin-team-filter" style="max-width:320px;margin-bottom:0.75rem"></select>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Организация</th><th>Название</th><th>Родитель (id)</th></tr>
+              </thead>
+              <tbody id="admin-teams-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal-shift" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3 id="modal-title">Смена</h3>
+      <form id="form-shift">
+        <input type="hidden" name="shift_id" />
+        <label>Дата</label>
+        <input type="date" name="work_date" required />
+        <div class="row" style="margin-top:0.75rem">
+          <div>
+            <label>Начало</label>
+            <input type="time" name="plan_start" required />
+          </div>
+          <div>
+            <label>Конец</label>
+            <input type="time" name="plan_end" required />
+          </div>
+        </div>
+        <label style="margin-top:0.75rem">Комментарий</label>
+        <textarea name="comment" rows="2" placeholder="Необязательно"></textarea>
+        <div class="row" style="margin-top:1rem">
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+          <button type="button" class="btn btn-ghost" id="modal-cancel">Отмена</button>
+          <button type="button" class="btn btn-danger hidden" id="modal-delete">Удалить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-fact" class="modal-backdrop hidden">
+    <div class="modal">
+      <h3>План / факт и подтверждение</h3>
+      <form id="form-fact">
+        <input type="hidden" name="shift_id" />
+        <p id="fact-emp" style="color:var(--muted);font-size:0.9rem"></p>
+        <div class="row">
+          <div>
+            <label>Факт начало</label>
+            <input type="time" name="fact_start" />
+          </div>
+          <div>
+            <label>Факт конец</label>
+            <input type="time" name="fact_end" />
+          </div>
+        </div>
+        <label style="margin-top:0.75rem">Статус</label>
+        <select name="status">
+          <option value="draft">Черновик</option>
+          <option value="submitted">На согласовании</option>
+          <option value="confirmed">Подтверждено</option>
+        </select>
+        <div class="row" style="margin-top:1rem">
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+          <button type="button" class="btn btn-ghost" id="fact-cancel">Отмена</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const LS = "schedule_token";
+    const api = (path, opts = {}) => {
+      const headers = { ...(opts.headers || {}) };
+      const t = localStorage.getItem(LS);
+      if (t) headers["Authorization"] = "Bearer " + t;
+      if (opts.body && typeof opts.body === "object" && !(opts.body instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+        opts.body = JSON.stringify(opts.body);
+      }
+      return fetch(path, { ...opts, headers }).then(async (r) => {
+        if (r.status === 204) return null;
+        const txt = await r.text();
+        let data;
+        try { data = txt ? JSON.parse(txt) : null; } catch { data = { detail: txt }; }
+        if (!r.ok) {
+          let msg = data.detail;
+          if (Array.isArray(msg)) msg = msg.map((e) => e.msg || JSON.stringify(e)).join("; ");
+          if (typeof msg !== "string") msg = r.statusText || "Ошибка";
+          throw new Error(msg);
+        }
+        return data;
+      });
+    };
+
+    let currentUser = null;
+    let myShifts = [];
+
+    function showLogin() {
+      document.getElementById("screen-login").classList.remove("hidden");
+      document.getElementById("screen-app").classList.add("hidden");
+      const pl = document.getElementById("panel-login");
+      const pr = document.getElementById("panel-register");
+      if (pl) pl.classList.remove("hidden");
+      if (pr) pr.classList.add("hidden");
+    }
+
+    async function openRegisterPanel() {
+      document.getElementById("panel-login").classList.add("hidden");
+      document.getElementById("panel-register").classList.remove("hidden");
+      document.getElementById("register-error").classList.add("hidden");
+      const orgSel = document.getElementById("reg-org");
+      const teamSel = document.getElementById("reg-team");
+      orgSel.innerHTML = '<option value="">— Загрузка… —</option>';
+      teamSel.innerHTML = '<option value="">— Сначала выберите организацию —</option>';
+      try {
+        const orgs = await api("/api/public/organizations");
+        orgSel.innerHTML = '<option value="">— Выберите организацию —</option>';
+        orgs.forEach((o) => orgSel.appendChild(new Option(o.name, o.id)));
+      } catch (e) {
+        orgSel.innerHTML = '<option value="">— Ошибка загрузки —</option>';
+        alert(e.message);
+      }
+    }
+
+    async function loadRegisterTeams(organizationId) {
+      const teamSel = document.getElementById("reg-team");
+      if (!organizationId) {
+        teamSel.innerHTML = '<option value="">— Сначала выберите организацию —</option>';
+        return;
+      }
+      teamSel.innerHTML = '<option value="">— Загрузка… —</option>';
+      try {
+        const teams = await api("/api/public/teams?organization_id=" + encodeURIComponent(organizationId));
+        teamSel.innerHTML = '<option value="">— Не указывать подразделение —</option>';
+        teams.forEach((t) => teamSel.appendChild(new Option(t.name, t.id)));
+      } catch (e) {
+        teamSel.innerHTML = '<option value="">— Ошибка —</option>';
+        alert(e.message);
+      }
+    }
+    function showApp() {
+      document.getElementById("screen-login").classList.add("hidden");
+      document.getElementById("screen-app").classList.remove("hidden");
+    }
+
+    function pad(n) { return n < 10 ? "0" + n : "" + n; }
+    function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+
+    function addDays(d, n) {
+      const x = new Date(d);
+      x.setDate(x.getDate() + n);
+      return x;
+    }
+
+    function range14() {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const days = [];
+      for (let i = 0; i < 14; i++) days.push(addDays(start, i));
+      return days;
+    }
+
+    function rangeMonth() {
+      const start = new Date();
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+      const days = [];
+      for (let d = new Date(start); d <= end; d = addDays(d, 1)) days.push(new Date(d));
+      return days;
+    }
+
+    function shiftForDate(isoDate) {
+      return myShifts.find((s) => s.work_date === isoDate);
+    }
+
+    function renderCalendar() {
+      const mode = document.getElementById("view-mode").value;
+      const mount = document.getElementById("calendar-mount");
+      mount.innerHTML = "";
+      let days = mode === "month" ? rangeMonth() : range14();
+      if (mode === "day") {
+        const pick = document.createElement("div");
+        pick.className = "row";
+        pick.innerHTML = `<div><label>Дата</label><input type="date" id="day-pick" value="${iso(new Date())}" /></div>`;
+        mount.appendChild(pick);
+        const inp = pick.querySelector("#day-pick");
+        inp.addEventListener("change", () => renderDaySingle(inp.value));
+        renderDaySingle(inp.value);
+        return;
+      }
+      const grid = document.createElement("div");
+      grid.className = "grid-days";
+      const dow = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+      days.forEach((d) => {
+        const id = iso(d);
+        const s = shiftForDate(id);
+        const el = document.createElement("div");
+        el.className = "day-cell";
+        el.dataset.date = id;
+        el.innerHTML = `<div class="dow">${dow[d.getDay()]} · ${id.slice(5)}</div><div class="num">${d.getDate()}</div>` +
+          (s ? `<div class="shift">${s.plan_start.slice(0,5)}–${s.plan_end.slice(0,5)}</div><div class="status">${statusRu(s.status)}</div>` : `<div class="shift" style="opacity:0.5">Нет смены</div>`);
+        el.addEventListener("click", () => openShiftModal(id, s));
+        grid.appendChild(el);
+      });
+      mount.appendChild(grid);
+    }
+
+    function renderDaySingle(isoDate) {
+      const mount = document.getElementById("calendar-mount");
+      const old = mount.querySelector(".grid-days");
+      if (old) old.remove();
+      const s = shiftForDate(isoDate);
+      const grid = document.createElement("div");
+      grid.className = "grid-days";
+      grid.style.gridTemplateColumns = "1fr";
+      const el = document.createElement("div");
+      el.className = "day-cell";
+      el.style.minHeight = "120px";
+      el.innerHTML = `<div class="dow">${isoDate}</div>` +
+        (s ? `<div class="shift" style="font-size:1rem">${s.plan_start.slice(0,5)} – ${s.plan_end.slice(0,5)}</div><div class="status">${statusRu(s.status)}</div>` : `<div class="shift">Нажмите, чтобы добавить смену</div>`);
+      el.addEventListener("click", () => openShiftModal(isoDate, s));
+      grid.appendChild(el);
+      mount.appendChild(grid);
+    }
+
+    function statusRu(st) {
+      if (st === "draft") return "Черновик";
+      if (st === "submitted") return "На согласовании";
+      if (st === "confirmed") return "Подтверждено";
+      return st;
+    }
+
+    function openShiftModal(dateStr, shift) {
+      const m = document.getElementById("modal-shift");
+      const f = document.getElementById("form-shift");
+      f.reset();
+      f.work_date.value = dateStr;
+      f.shift_id.value = shift ? shift.id : "";
+      if (shift) {
+        f.plan_start.value = shift.plan_start.slice(0, 5);
+        f.plan_end.value = shift.plan_end.slice(0, 5);
+        f.comment.value = shift.comment || "";
+        document.getElementById("modal-delete").classList.toggle("hidden", shift.status === "confirmed");
+      } else {
+        f.plan_start.value = "09:00";
+        f.plan_end.value = "18:00";
+        document.getElementById("modal-delete").classList.add("hidden");
+      }
+      document.getElementById("modal-title").textContent = shift ? "Редактировать смену" : "Новая смена";
+      m.classList.remove("hidden");
+    }
+
+    function closeShiftModal() {
+      document.getElementById("modal-shift").classList.add("hidden");
+    }
+
+    async function loadMyShifts() {
+      const from = iso(new Date());
+      const to = iso(addDays(new Date(), 60));
+      myShifts = await api(`/api/shifts/my?from_date=${from}&to_date=${to}`);
+      renderCalendar();
+    }
+
+    document.getElementById("link-register").addEventListener("click", (e) => {
+      e.preventDefault();
+      openRegisterPanel();
+    });
+    document.getElementById("link-login").addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("panel-register").classList.add("hidden");
+      document.getElementById("panel-login").classList.remove("hidden");
+    });
+    document.getElementById("reg-org").addEventListener("change", (e) => {
+      loadRegisterTeams(e.target.value);
+    });
+
+    document.getElementById("form-login").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const err = document.getElementById("login-error");
+      err.classList.add("hidden");
+      try {
+        const data = await api("/api/auth/login", {
+          method: "POST",
+          body: { email: fd.get("email"), password: fd.get("password") },
+        });
+        localStorage.setItem(LS, data.access_token);
+        await bootApp();
+      } catch (x) {
+        err.textContent = x.message;
+        err.classList.remove("hidden");
+      }
+    });
+
+    document.getElementById("form-register").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const errEl = document.getElementById("register-error");
+      errEl.classList.add("hidden");
+      const orgId = fd.get("organization_id");
+      const teamRaw = fd.get("team_id");
+      const body = {
+        email: fd.get("email").trim(),
+        full_name: fd.get("full_name").trim(),
+        password: fd.get("password"),
+        organization_id: Number(orgId),
+        team_id: teamRaw ? Number(teamRaw) : null,
+      };
+      try {
+        const data = await api("/api/auth/register", { method: "POST", body });
+        e.target.reset();
+        alert(data.message || "Заявка отправлена.");
+        document.getElementById("panel-register").classList.add("hidden");
+        document.getElementById("panel-login").classList.remove("hidden");
+      } catch (x) {
+        errEl.textContent = x.message;
+        errEl.classList.remove("hidden");
+      }
+    });
+
+    document.getElementById("btn-logout").addEventListener("click", () => {
+      localStorage.removeItem(LS);
+      currentUser = null;
+      showLogin();
+    });
+
+    document.getElementById("view-mode").addEventListener("change", renderCalendar);
+
+    document.getElementById("form-shift").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const id = f.shift_id.value;
+      const body = {
+        work_date: f.work_date.value,
+        plan_start: f.plan_start.value + ":00",
+        plan_end: f.plan_end.value + ":00",
+        comment: f.comment.value || null,
+      };
+      try {
+        if (id) {
+          await api("/api/shifts/my/" + id, { method: "PATCH", body });
+        } else {
+          await api("/api/shifts/my", { method: "POST", body });
+        }
+        closeShiftModal();
+        await loadMyShifts();
+      } catch (x) {
+        alert(x.message);
+      }
+    });
+
+    document.getElementById("modal-cancel").addEventListener("click", closeShiftModal);
+    document.getElementById("modal-delete").addEventListener("click", async () => {
+      const id = document.getElementById("form-shift").shift_id.value;
+      if (!id || !confirm("Удалить смену?")) return;
+      try {
+        await api("/api/shifts/my/" + id, { method: "DELETE" });
+        closeShiftModal();
+        await loadMyShifts();
+      } catch (x) {
+        alert(x.message);
+      }
+    });
+
+    document.getElementById("btn-submit-week").addEventListener("click", async () => {
+      try {
+        await api("/api/shifts/my/submit-week", { method: "POST" });
+        await loadMyShifts();
+        alert("Черновики отправлены на согласование.");
+      } catch (x) {
+        alert(x.message);
+      }
+    });
+
+    function isManager() {
+      return currentUser && (currentUser.role === "manager" || currentUser.role === "admin");
+    }
+
+    function isAdmin() {
+      return currentUser && currentUser.role === "admin";
+    }
+
+    let adminOrgs = [];
+    let adminTeams = [];
+    let adminPanelWired = false;
+
+    function orgNameById(id) {
+      const o = adminOrgs.find((x) => x.id === id);
+      return o ? o.name : "—";
+    }
+
+    function fillOrgDropdowns() {
+      const ids = ["admin-team-org", "admin-user-org"];
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const cur = el.value;
+        el.innerHTML = "";
+        adminOrgs.forEach((o) => el.appendChild(new Option(o.name + " (id " + o.id + ")", o.id)));
+        if (cur && [...el.options].some((o) => o.value === cur)) el.value = cur;
+      });
+      const filt = document.getElementById("admin-team-filter");
+      if (filt) {
+        filt.innerHTML = '<option value="">Все организации</option>';
+        adminOrgs.forEach((o) => filt.appendChild(new Option(o.name, o.id)));
+      }
+    }
+
+    async function loadTeamParentsForOrg(organizationId) {
+      const sel = document.getElementById("admin-team-parent");
+      if (!sel || !organizationId) return;
+      const teams = await api("/api/admin/teams?organization_id=" + encodeURIComponent(organizationId));
+      sel.innerHTML = '<option value="">— Верхний уровень (нет родителя) —</option>';
+      teams.forEach((t) => sel.appendChild(new Option(t.name + " (id " + t.id + ")", t.id)));
+    }
+
+    async function loadUserTeamsForOrg(organizationId) {
+      const sel = document.getElementById("admin-user-team");
+      if (!sel || !organizationId) return;
+      const teams = await api("/api/admin/teams?organization_id=" + encodeURIComponent(organizationId));
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— Не назначено —</option>';
+      teams.forEach((t) => sel.appendChild(new Option(t.name + " (id " + t.id + ")", t.id)));
+      if (cur && [...sel.options].some((o) => o.value === cur)) sel.value = cur;
+    }
+
+    function renderAdminOrgTable() {
+      const tb = document.getElementById("admin-org-table");
+      if (!tb) return;
+      tb.innerHTML = "";
+      adminOrgs.forEach((o) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${o.id}</td><td>${o.name}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    function renderAdminTeamsTable() {
+      const tb = document.getElementById("admin-teams-table");
+      const filt = document.getElementById("admin-team-filter");
+      if (!tb) return;
+      const fid = filt && filt.value ? Number(filt.value) : null;
+      const rows = fid ? adminTeams.filter((t) => t.organization_id === fid) : adminTeams;
+      tb.innerHTML = "";
+      rows.forEach((t) => {
+        const tr = document.createElement("tr");
+        const pid = t.parent_id != null ? String(t.parent_id) : "—";
+        tr.innerHTML = `<td>${t.id}</td><td>${orgNameById(t.organization_id)}</td><td>${t.name}</td><td>${pid}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    async function refreshAdminData() {
+      if (!isAdmin()) return;
+      try {
+        adminOrgs = await api("/api/admin/organizations");
+        adminTeams = await api("/api/admin/teams");
+        fillOrgDropdowns();
+        renderAdminOrgTable();
+        renderAdminTeamsTable();
+        const tog = document.getElementById("admin-team-org");
+        if (tog && tog.value) await loadTeamParentsForOrg(tog.value);
+        const uo = document.getElementById("admin-user-org");
+        if (uo && uo.value) await loadUserTeamsForOrg(uo.value);
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    function wireAdminPanel() {
+      if (adminPanelWired) return;
+      adminPanelWired = true;
+      document.getElementById("admin-refresh").addEventListener("click", () => refreshAdminData());
+
+      document.getElementById("admin-team-org").addEventListener("change", (e) => {
+        loadTeamParentsForOrg(e.target.value);
+      });
+      document.getElementById("admin-user-org").addEventListener("change", (e) => {
+        loadUserTeamsForOrg(e.target.value);
+      });
+      document.getElementById("admin-team-filter").addEventListener("change", () => renderAdminTeamsTable());
+
+      document.getElementById("form-admin-org").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        try {
+          await api("/api/admin/organizations", { method: "POST", body: { name: fd.get("name").trim() } });
+          e.target.reset();
+          await refreshAdminData();
+          alert("Организация создана.");
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+
+      document.getElementById("form-admin-team").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const parentRaw = fd.get("parent_id");
+        const body = {
+          organization_id: Number(fd.get("organization_id")),
+          name: fd.get("name").trim(),
+          parent_id: parentRaw ? Number(parentRaw) : null,
+        };
+        try {
+          await api("/api/admin/teams", { method: "POST", body });
+          e.target.reset();
+          document.getElementById("admin-team-parent").innerHTML =
+            '<option value="">— Верхний уровень (нет родителя) —</option>';
+          await refreshAdminData();
+          if (document.getElementById("admin-team-org").value) {
+            await loadTeamParentsForOrg(document.getElementById("admin-team-org").value);
+          }
+          alert("Подразделение создано.");
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+
+      document.getElementById("form-admin-user").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const teamRaw = fd.get("team_id");
+        const body = {
+          email: fd.get("email").trim(),
+          full_name: fd.get("full_name").trim(),
+          password: fd.get("password"),
+          organization_id: Number(fd.get("organization_id")),
+          team_id: teamRaw ? Number(teamRaw) : null,
+          role: fd.get("role"),
+        };
+        try {
+          await api("/api/admin/users", { method: "POST", body });
+          e.target.reset();
+          alert("Пользователь создан.");
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+    }
+
+    async function bootApp() {
+      try {
+        currentUser = await api("/api/auth/me");
+      } catch {
+        localStorage.removeItem(LS);
+        showLogin();
+        return;
+      }
+      showApp();
+      document.getElementById("user-label").textContent = currentUser.full_name + " · " + currentUser.role;
+      document.getElementById("tab-mgr").classList.toggle("hidden", !isManager());
+      document.getElementById("tab-admin").classList.toggle("hidden", !isAdmin());
+      await loadMyShifts();
+      if (isManager()) initMgrPanel();
+      if (isAdmin()) wireAdminPanel();
+    }
+
+    document.querySelectorAll(".tab").forEach((t) => {
+      t.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+        t.classList.add("active");
+        const p = t.dataset.panel;
+        document.getElementById("panel-my").classList.toggle("hidden", p !== "my");
+        document.getElementById("panel-mgr").classList.toggle("hidden", p !== "mgr");
+        document.getElementById("panel-admin").classList.toggle("hidden", p !== "admin");
+        if (p === "admin" && isAdmin()) refreshAdminData();
+        if (p === "mgr" && isManager()) loadPendingUsers().catch((x) => alert(x.message));
+      });
+    });
+
+    function initMgrPanel() {
+      const today = new Date();
+      const from = iso(today);
+      const to = iso(addDays(today, 14));
+      document.getElementById("mgr-from").value = from;
+      document.getElementById("mgr-to").value = to;
+      document.getElementById("mgr-refresh").onclick = async () => {
+        try {
+          await loadMgr();
+          await loadPendingUsers();
+        } catch (x) {
+          alert(x.message);
+        }
+      };
+      document.getElementById("mgr-report").onclick = async () => {
+        const from = document.getElementById("mgr-from").value;
+        const to = document.getElementById("mgr-to").value;
+        try {
+          const rep = await api(`/api/reports/plan-fact?from_date=${from}&to_date=${to}`);
+          const box = document.getElementById("mgr-report-box");
+          const tb = document.getElementById("mgr-report-body");
+          tb.innerHTML = "";
+          rep.rows.forEach((r) => {
+            const ph = (r.plan_minutes / 60).toFixed(1);
+            const fh = (r.fact_minutes / 60).toFixed(1);
+            const d = ((r.fact_minutes - r.plan_minutes) / 60).toFixed(1);
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${r.full_name}</td><td>${r.shifts_count}</td><td>${ph}</td><td>${fh}</td><td>${d}</td>`;
+            tb.appendChild(tr);
+          });
+          box.classList.remove("hidden");
+        } catch (x) {
+          alert(x.message);
+        }
+      };
+      document.getElementById("mgr-csv").onclick = (e) => {
+        e.preventDefault();
+        const a = document.getElementById("mgr-csv");
+        const f = document.getElementById("mgr-from").value;
+        const t = document.getElementById("mgr-to").value;
+        a.href = `/api/export/csv?from_date=${f}&to_date=${t}`;
+        a.download = "";
+        const tok = localStorage.getItem(LS);
+        fetch(a.href, { headers: { Authorization: "Bearer " + tok } })
+          .then((r) => r.blob())
+          .then((blob) => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `schedule_${f}_${t}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+          });
+      };
+      loadMgr();
+      loadPendingUsers().catch((x) => alert(x.message));
+    }
+
+    async function loadPendingUsers() {
+      const tb = document.getElementById("mgr-pending-table");
+      if (!tb) return;
+      const list = await api("/api/manager/pending-users");
+      tb.innerHTML = "";
+      if (!list.length) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="5" style="color:var(--muted)">Нет ожидающих подтверждения</td>`;
+        tb.appendChild(tr);
+        return;
+      }
+      list.forEach((u) => {
+        const tr = document.createElement("tr");
+        const team = u.team_name || "—";
+        tr.innerHTML = `<td>${u.email}</td><td>${u.full_name}</td><td>${team}</td><td>${u.role}</td><td><button type="button" class="btn btn-primary">Подтвердить</button></td>`;
+        tr.querySelector("button").addEventListener("click", async () => {
+          if (!confirm("Подтвердить доступ для «" + u.email + "»?")) return;
+          try {
+            await api("/api/manager/users/" + u.id + "/approve", { method: "POST" });
+            await loadPendingUsers();
+          } catch (x) {
+            alert(x.message);
+          }
+        });
+        tb.appendChild(tr);
+      });
+    }
+
+    async function loadMgr() {
+      const from = document.getElementById("mgr-from").value;
+      const to = document.getElementById("mgr-to").value;
+      const [shifts, summary] = await Promise.all([
+        api(`/api/shifts/org?from_date=${from}&to_date=${to}`),
+        api(`/api/shifts/summary?from_date=${from}&to_date=${to}`),
+      ]);
+      const tbody = document.getElementById("mgr-table");
+      tbody.innerHTML = "";
+      shifts.forEach((s) => {
+        const tr = document.createElement("tr");
+        const plan = `${s.plan_start.slice(0,5)}–${s.plan_end.slice(0,5)}`;
+        const fact = s.fact_start && s.fact_end ? `${s.fact_start.slice(0,5)}–${s.fact_end.slice(0,5)}` : "—";
+        const pill = `<span class="pill pill-${s.status}">${statusRu(s.status)}</span>`;
+        tr.innerHTML = `<td>${s.work_date}</td><td>${s.user_full_name}</td><td>${plan}</td><td>${fact}</td><td>${pill}</td><td><button type="button" class="btn btn-ghost" data-sid="${s.id}">План/факт</button></td>`;
+        tr.querySelector("button").addEventListener("click", () => openFactModal(s));
+        tbody.appendChild(tr);
+      });
+      const chart = document.getElementById("mgr-chart");
+      chart.innerHTML = "";
+      const per = summary.shifts_per_day || {};
+      const keys = Object.keys(per).sort();
+      const maxv = Math.max(1, ...keys.map((k) => per[k]));
+      keys.forEach((k) => {
+        const h = Math.round((per[k] / maxv) * 100);
+        const b = document.createElement("div");
+        b.className = "bar";
+        b.style.height = h + "%";
+        b.innerHTML = `<span title="${k}">${k.slice(5)}</span>`;
+        chart.appendChild(b);
+      });
+    }
+
+    function openFactModal(s) {
+      const m = document.getElementById("modal-fact");
+      const f = document.getElementById("form-fact");
+      f.reset();
+      f.shift_id.value = s.id;
+      f.status.value = s.status;
+      if (s.fact_start) f.fact_start.value = s.fact_start.slice(0, 5);
+      if (s.fact_end) f.fact_end.value = s.fact_end.slice(0, 5);
+      document.getElementById("fact-emp").textContent = s.user_full_name + " · " + s.work_date;
+      m.classList.remove("hidden");
+    }
+
+    document.getElementById("fact-cancel").addEventListener("click", () => {
+      document.getElementById("modal-fact").classList.add("hidden");
+    });
+
+    document.getElementById("form-fact").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const id = f.shift_id.value;
+      const body = { status: f.status.value };
+      if (f.fact_start.value) body.fact_start = f.fact_start.value + ":00";
+      else body.fact_start = null;
+      if (f.fact_end.value) body.fact_end = f.fact_end.value + ":00";
+      else body.fact_end = null;
+      try {
+        await api("/api/shifts/org/" + id, { method: "PATCH", body });
+        document.getElementById("modal-fact").classList.add("hidden");
+        await loadMgr();
+        await loadMyShifts();
+      } catch (x) {
+        alert(x.message);
+      }
+    });
+
+    if (localStorage.getItem(LS)) bootApp();
+    else showLogin();
+  </script>
+</body>
+</html>
