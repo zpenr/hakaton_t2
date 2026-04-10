@@ -16,11 +16,12 @@ router = APIRouter(prefix="/api/export", tags=["export"])
 def export_csv(
     from_date: date,
     to_date: date,
+    team_id: int | None = None,
     db: Session = Depends(get_db),
     viewer: User = Depends(require_roles(UserRole.manager, UserRole.admin)),
 ):
     """Табличная выгрузка: день, сотрудник, план/факт начало и конец."""
-    shifts = (
+    q = (
         db.query(Shift)
         .join(User)
         .filter(
@@ -28,9 +29,10 @@ def export_csv(
             Shift.work_date >= from_date,
             Shift.work_date <= to_date,
         )
-        .order_by(Shift.work_date, User.full_name)
-        .all()
     )
+    if team_id is not None:
+        q = q.filter(User.team_id == team_id)
+    shifts = q.order_by(Shift.work_date, User.full_name).all()
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
     w.writerow(

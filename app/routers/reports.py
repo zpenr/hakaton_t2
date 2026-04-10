@@ -18,11 +18,12 @@ def _minutes(t) -> int:
 def plan_fact_report(
     from_date: date,
     to_date: date,
+    team_id: int | None = None,
     db: Session = Depends(get_db),
     viewer: User = Depends(require_roles(UserRole.manager, UserRole.admin)),
 ):
     """Сводка по минутам план vs факт по сотрудникам за период."""
-    shifts = (
+    q = (
         db.query(Shift)
         .join(User)
         .filter(
@@ -30,8 +31,10 @@ def plan_fact_report(
             Shift.work_date >= from_date,
             Shift.work_date <= to_date,
         )
-        .all()
     )
+    if team_id is not None:
+        q = q.filter(User.team_id == team_id)
+    shifts = q.all()
     by_user: dict[int, dict] = {}
     for s in shifts:
         uid = s.user_id

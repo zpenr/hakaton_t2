@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps import get_current_user, require_roles
@@ -126,7 +126,12 @@ def list_org_shifts(
     db: Session = Depends(get_db),
     viewer: User = Depends(require_roles(UserRole.manager, UserRole.admin)),
 ):
-    q = db.query(Shift).join(User).filter(User.organization_id == viewer.organization_id)
+    q = (
+        db.query(Shift)
+        .options(joinedload(Shift.user).joinedload(User.team))
+        .join(User)
+        .filter(User.organization_id == viewer.organization_id)
+    )
     if team_id is not None:
         q = q.filter(User.team_id == team_id)
     if from_date:
@@ -150,6 +155,8 @@ def list_org_shifts(
                 comment=s.comment,
                 user_email=u.email,
                 user_full_name=u.full_name,
+                team_id=u.team_id,
+                team_name=u.team.name if u.team else None,
             )
         )
     return out
@@ -179,11 +186,12 @@ def manager_update_shift(
 def workload_summary(
     from_date: date,
     to_date: date,
+    team_id: int | None = None,
     db: Session = Depends(get_db),
     viewer: User = Depends(require_roles(UserRole.manager, UserRole.admin)),
 ):
     """Количество смен по дням в организации (нагрузка)."""
-    shifts = (
+    q = (
         db.query(Shift)
         .join(User)
         .filter(
@@ -191,8 +199,10 @@ def workload_summary(
             Shift.work_date >= from_date,
             Shift.work_date <= to_date,
         )
-        .all()
     )
+    if team_id is not None:
+        q = q.filter(User.team_id == team_id)
+    shifts = q.all()
     by_day: dict[str, int] = {}
     for s in shifts:
         key = s.work_date.isoformat()

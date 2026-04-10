@@ -264,6 +264,12 @@
               <label>По</label>
               <input type="date" id="mgr-to" />
             </div>
+            <div>
+              <label>Подразделение</label>
+              <select id="mgr-team">
+                <option value="">Все подразделения</option>
+              </select>
+            </div>
             <div style="display:flex;align-items:flex-end;gap:0.5rem;flex-wrap:wrap">
               <button type="button" class="btn btn-primary" id="mgr-refresh">Обновить</button>
               <button type="button" class="btn btn-ghost" id="mgr-report">Отчёт план/факт</button>
@@ -290,6 +296,7 @@
                 <tr>
                   <th>Дата</th>
                   <th>Сотрудник</th>
+                  <th>Подразделение</th>
                   <th>План</th>
                   <th>Факт</th>
                   <th>Статус</th>
@@ -947,6 +954,9 @@
       const to = iso(addDays(today, 14));
       document.getElementById("mgr-from").value = from;
       document.getElementById("mgr-to").value = to;
+      document.getElementById("mgr-team").onchange = () => {
+        loadMgr().catch((x) => alert(x.message));
+      };
       document.getElementById("mgr-refresh").onclick = async () => {
         try {
           await loadMgr();
@@ -958,8 +968,10 @@
       document.getElementById("mgr-report").onclick = async () => {
         const from = document.getElementById("mgr-from").value;
         const to = document.getElementById("mgr-to").value;
+        const team = document.getElementById("mgr-team").value;
         try {
-          const rep = await api(`/api/reports/plan-fact?from_date=${from}&to_date=${to}`);
+          const teamQ = team ? `&team_id=${encodeURIComponent(team)}` : "";
+          const rep = await api(`/api/reports/plan-fact?from_date=${from}&to_date=${to}${teamQ}`);
           const box = document.getElementById("mgr-report-box");
           const tb = document.getElementById("mgr-report-body");
           tb.innerHTML = "";
@@ -981,7 +993,9 @@
         const a = document.getElementById("mgr-csv");
         const f = document.getElementById("mgr-from").value;
         const t = document.getElementById("mgr-to").value;
-        a.href = `/api/export/csv?from_date=${f}&to_date=${t}`;
+        const team = document.getElementById("mgr-team").value;
+        const teamQ = team ? `&team_id=${encodeURIComponent(team)}` : "";
+        a.href = `/api/export/csv?from_date=${f}&to_date=${t}${teamQ}`;
         a.download = "";
         const tok = localStorage.getItem(LS);
         fetch(a.href, { headers: { Authorization: "Bearer " + tok } })
@@ -995,6 +1009,15 @@
             URL.revokeObjectURL(url);
           });
       };
+      api("/api/teams")
+        .then((teams) => {
+          const sel = document.getElementById("mgr-team");
+          const cur = sel.value;
+          sel.innerHTML = '<option value=\"\">Все подразделения</option>';
+          teams.forEach((t) => sel.appendChild(new Option(t.name, t.id)));
+          if (cur && [...sel.options].some((o) => o.value === cur)) sel.value = cur;
+        })
+        .catch(() => {});
       loadMgr();
       loadPendingUsers().catch((x) => alert(x.message));
     }
@@ -1030,18 +1053,37 @@
     async function loadMgr() {
       const from = document.getElementById("mgr-from").value;
       const to = document.getElementById("mgr-to").value;
+      const team = document.getElementById("mgr-team").value;
+      const teamQ = team ? `&team_id=${encodeURIComponent(team)}` : "";
       const [shifts, summary] = await Promise.all([
-        api(`/api/shifts/org?from_date=${from}&to_date=${to}`),
-        api(`/api/shifts/summary?from_date=${from}&to_date=${to}`),
+        api(`/api/shifts/org?from_date=${from}&to_date=${to}${teamQ}`),
+        api(`/api/shifts/summary?from_date=${from}&to_date=${to}${teamQ}`),
       ]);
       const tbody = document.getElementById("mgr-table");
       tbody.innerHTML = "";
-      shifts.forEach((s) => {
+      const sorted = [...shifts].sort((a, b) => {
+        const ta = (a.team_name || "—").toLowerCase();
+        const tb = (b.team_name || "—").toLowerCase();
+        if (ta < tb) return -1;
+        if (ta > tb) return 1;
+        if (a.work_date < b.work_date) return -1;
+        if (a.work_date > b.work_date) return 1;
+        return (a.user_full_name || "").localeCompare(b.user_full_name || "");
+      });
+      let lastTeam = null;
+      sorted.forEach((s) => {
+        const teamName = s.team_name || "—";
+        if (teamName !== lastTeam) {
+          lastTeam = teamName;
+          const sep = document.createElement("tr");
+          sep.innerHTML = `<td colspan=\"7\" style=\"color:var(--muted);font-weight:600;padding-top:0.85rem\">Подразделение: ${teamName}</td>`;
+          tbody.appendChild(sep);
+        }
         const tr = document.createElement("tr");
         const plan = `${s.plan_start.slice(0,5)}–${s.plan_end.slice(0,5)}`;
         const fact = s.fact_start && s.fact_end ? `${s.fact_start.slice(0,5)}–${s.fact_end.slice(0,5)}` : "—";
         const pill = `<span class="pill pill-${s.status}">${statusRu(s.status)}</span>`;
-        tr.innerHTML = `<td>${s.work_date}</td><td>${s.user_full_name}</td><td>${plan}</td><td>${fact}</td><td>${pill}</td><td><button type="button" class="btn btn-ghost" data-sid="${s.id}">План/факт</button></td>`;
+        tr.innerHTML = `<td>${s.work_date}</td><td>${s.user_full_name}</td><td>${teamName}</td><td>${plan}</td><td>${fact}</td><td>${pill}</td><td><button type="button" class="btn btn-ghost" data-sid="${s.id}">План/факт</button></td>`;
         tr.querySelector("button").addEventListener("click", () => openFactModal(s));
         tbody.appendChild(tr);
       });

@@ -99,6 +99,8 @@ class ShiftRead(BaseModel):
 class ShiftReadWithUser(ShiftRead):
     user_email: str
     user_full_name: str
+    team_id: int | None = None
+    team_name: str | None = None
 
 
 class OrganizationRead(BaseModel):
